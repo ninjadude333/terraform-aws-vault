@@ -4,7 +4,7 @@
 variable "vault_name" {
   description = "The name of the vault cluster in 3 to 5 characters. Changes in runtime would re-deploy a new cluster, data from the old cluster would be lost."
   type        = string
-  default     = "unset"
+  default     = "dudeV"
   validation {
     condition     = length(var.vault_name) >= 3 && length(var.vault_name) <= 5 && var.vault_name != "default"
     error_message = "Please use a minimum of 3 and a maximum of 5 characters. \"default\" can't be used because it is reserved."
@@ -24,7 +24,7 @@ variable "vault_version" {
 variable "vault_aws_key_name" {
   description = "The name of an existing ssh key. Either specify \"vault_aws_key_name\" or \"vault_keyfile_path\"."
   type        = string
-  default     = ""
+  default     = "dudug"
 }
 
 variable "vault_keyfile_path" {
@@ -40,7 +40,7 @@ variable "vault_keyfile_path" {
 variable "vault_size" {
   description = "The size of the deployment."
   type        = string
-  default     = "small"
+  default     = "development"
   validation {
     condition     = contains(["custom", "development", "minimum", "small", "large", "maximum"], var.vault_size)
     error_message = "Please use \"custom\", \"development\", \"minimum\", \"small\", \"large\" or \"maximum\"."
@@ -50,7 +50,7 @@ variable "vault_size" {
 variable "vault_volume_type" {
   description = "When `vault_size` is set to `custom`, specify your own volume type here."
   type        = string
-  default     = "io1"
+  default     = "gp2"
   validation {
     condition     = contains(["gp2", "gp3", "io1", "io2"], var.vault_volume_type)
     error_message = "Please use \"gp3\", \"gp3\", \"io1\" or \"io2\"."
@@ -59,7 +59,7 @@ variable "vault_volume_type" {
 variable "vault_volume_size" {
   description = "When `vault_size` is set to `custom`, specify your own volume size (in GB) here."
   type        = number
-  default     = 50
+  default     = 30
   validation {
     condition     = var.vault_volume_size >= 8
     error_message = "Please use a minimum of \"8\"."
@@ -79,7 +79,7 @@ variable "vault_volume_iops" {
 variable "vault_node_amount" {
   description = "The amount of instances to deploy, by not specifying the value, the optimum amount is calculated."
   type        = number
-  default     = null
+  default     = 3
   validation {
     condition     = var.vault_node_amount == null ? true : var.vault_node_amount % 2 == 1 && var.vault_node_amount >= 3 && var.vault_node_amount <= 5
     error_message = "Please use an odd number for amount, like 3 or 5."
@@ -121,7 +121,9 @@ variable "vault_tags" {
   description = "Tags to add to resources."
   type        = map(string)
   default = {
-    owner = "unset"
+    owner     = "david gidony",
+    terraform = "true",
+    env       = "test"
   }
 }
 
@@ -138,6 +140,7 @@ variable "vault_asg_instance_lifetime" {
 variable "vault_aws_certificate_arn" {
   description = "The ARN to an existing certificate."
   type        = string
+  default     = "arn:aws:acm:eu-west-2:391026464511:certificate/62db92a0-208d-4363-b616-21a30bc0c7d4"
   validation {
     condition     = can(regex("^arn:aws:acm:", var.vault_aws_certificate_arn))
     error_message = "Please specify a valid ARN, starting with \"arn:aws:acm:\"."
@@ -199,7 +202,7 @@ variable "vault_public_subnet_ids" {
 variable "vault_type" {
   description = "The type of installation to do, either \"enterprise\" or \"opensource\"."
   type        = string
-  default     = "opensource"
+  default     = "enterprise"
   validation {
     condition     = contains(["enterprise", "opensource"], var.vault_type)
     error_message = "Please use \"enterprise\" or \"opensource\"."
@@ -209,11 +212,11 @@ variable "vault_type" {
 variable "vault_license" {
   description = "The contents of the license."
   type        = string
-  default     = ""
-  validation {
-    condition     = length(var.vault_license) == 1201 || length(var.vault_license) == 0
-    error_message = "The license should contain 1201 characters."
-  }
+  default     = "02MV4UU43BK5HGYYTOJZWFQMTMNNEWU33JLJDUM2SOIRFGUTTNIV2FUR2JGJHHSMBRJ5KE26SMKRMTIWSULF2E26S2NVGUIVLYLFVFU3KNIRLG2SLJO5UVSM2WPJSEOOLULJMEUZTBK5IWST3JJEZVS3KONVMW2RTNLJBTAMSZNJVTKTCXLJVVURCZORHFIZDNJ5BTA6COKRNGSTLNKEYE2RCCNVNFI23JJRBUU4DCNZHDAWKXPBZVSWCSOBRDENLGMFLVC2KPNFEXCSLJO5UWCWCOPJSFOVTGMRDWY5C2KNETMSLKJF3U22SJORGVIRLUJVKGIVKNIRVTMTSUJU3E22TLOVGXUY3YJZVGOMKNKRATAV3JJFZUS3SOGBMVQSRQLAZVE4DCK5KWST3JJF4U2RCJPFGFIRLYJRKEKM2WIRAXOT3KIF3U62SBO5LWSSLTJFWVMNDDI5WHSWKYKJYGEMRVMZSEO3DULJJUSNSJNJEXOTLKJV2E2VCFORGVIZCVJVVE2NSOKRVTMTSUNN2U6VDLGVLWSSLTJFXFE3DDNUYXAYTNIYYGCVZZOVMDGUTQMJLVK2KPNFEXSTKEJF5EYVCFPBGFIRJTKZCES6SPNJKTKT3KKU2UY2TLGVHVM33JJRBUU53DNU4WWZCXJYYES2TPNFSG2RRRMJEFC2KMINFG2YSHIZXGG6KJGZSXSSTUMIZFEMLCI5LHUSLKOBRES3JRGFREQUTQJRLVE2SMLBHGUWKXPBWES2LXNFNDEOJSLJMEU5KZK42WUWSTGF3WEMTYOBMTG23JJRBUU2C2JBNGQYTNJZWFUQZRNNMVQUTIJRMEE6LCGNJGYWJTKJYGEMRUORSEQSTIMJXE43LCGNFHISLJO5UVSV2SGJMVONLKLJLVC5C2I5DDAWKTGF3WG3JZGBNFOTRQMFLTS5KMK52GYZKTGF2FSVZVNBNDEVTULJLTKMCJNQYTSZSRHU6S4WBTPFFHUULTM4VTSNLOGY3GOV3VLFJUOOLRJF4EGQLZIVGG4QKYNZKEYODMIJQUONTGMVJHA6LKOV3GIL2ENRYHE2RVKVGG4OJSMV2UYTTTJF3DSRZQLBVXQVCMKQXXI2CXO5SEGWRRMRAWWY3BGRSFMMBTGM4FA53NKZWGC5SKKA2HASTYJFETSRBWKVDEYVLBKZIGU22XJJ2GGRBWOBQWYNTPJ5TEO3SLGJ5FAS2KKJWUOSCWGNSVU53RIZSSW3ZXNMXXGK2BKRHGQUC2M5JS6S2WLFTS6SZLNRDVA52MG5VEE6CJG5DU6YLLGZKWC2LBJBXWK2ZQKJKG6NZSIRIT2PI"
+  # validation {
+  #   condition     = length(var.vault_license) == 1201 || length(var.vault_license) == 0
+  #   error_message = "The license should contain 1201 characters."
+  # }
 }
 
 variable "vault_api_addr" {
@@ -224,6 +227,18 @@ variable "vault_api_addr" {
     condition     = can(regex("^http", var.vault_api_addr)) || length(var.vault_api_addr) == 0
     error_message = "Please use a URL like: \"https://vault.example.com:8200\"."
   }
+}
+
+variable "r53_zone_id" {
+  description = "r53 hosted zone id."
+  type        = string
+  default     = "Z01037061JEWRULO9O9LE"
+}
+
+variable "r53_record_name" {
+  description = "The name of the dns record for the load balancer."
+  type        = string
+  default     = "vault.dudelabxxx.com"
 }
 
 variable "vault_allowed_cidr_blocks_replication" {
@@ -298,7 +313,7 @@ variable "vault_enable_telemetry_unauthenticated_metrics_access" {
 variable "vault_aws_kms_key_id" {
   description = "You can optionally bring your own AWS KMS key."
   type        = string
-  default     = ""
+  default     = "a455605b-5f73-4139-bd92-eb0ec0e04934"
   validation {
     condition     = var.vault_aws_kms_key_id == "" || length(var.vault_aws_kms_key_id) >= 30
     error_message = "Please specify an AWS KMS key with a length of 30 or more."
@@ -370,7 +385,7 @@ variable "vault_audit_device" {
 variable "vault_audit_device_size" {
   description = "The size (in GB) of the audit device when `var.vault_audit_device` is enabled."
   type        = number
-  default     = 32
+  default     = 16
   validation {
     condition     = var.vault_audit_device_size >= 16
     error_message = "Please use 16 (GB) or more."
@@ -390,13 +405,13 @@ variable "vault_audit_device_path" {
 variable "vault_allow_ssh" {
   description = "You can (dis-) allow SSH access to the Vault nodes."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "vault_asg_minimum_required_memory" {
   description = "When using a custom size, the minimum amount of memory (in megabytes) can be set."
   type        = number
-  default     = 8192
+  default     = 512
   validation {
     condition     = var.vault_asg_minimum_required_memory >= 512
     error_message = "Please use 512 (megabytes) or more."
@@ -406,7 +421,7 @@ variable "vault_asg_minimum_required_memory" {
 variable "vault_asg_minimum_required_vcpus" {
   description = "When using a custom size, the minimum amount of vcpus can be set."
   type        = number
-  default     = 2
+  default     = 1
   validation {
     condition     = var.vault_asg_minimum_required_vcpus >= 1
     error_message = "Please specify at least 1 for the CPU count."
@@ -416,7 +431,7 @@ variable "vault_asg_minimum_required_vcpus" {
 variable "vault_asg_cpu_manufacturer" {
   description = "You can choose the cpu manufacturer."
   type        = string
-  default     = "amazon-web-services"
+  default     = "intel"
   validation {
     condition     = contains(["amazon-web-services", "amd", "intel"], var.vault_asg_cpu_manufacturer)
     error_message = "Please choosse from \"amazon-web-services\", \"amd\" or \"intel\"."
@@ -434,7 +449,7 @@ variable "vault_custom_script_s3_url" {
   type        = string
   default     = ""
   validation {
-    condition = can(regex("^s3://", var.vault_custom_script_s3_url)) || var.vault_custom_script_s3_url == ""
+    condition     = can(regex("^s3://", var.vault_custom_script_s3_url)) || var.vault_custom_script_s3_url == ""
     error_message = "Please use an s3 URL, starting with \"s3://\"."
   }
 }
@@ -470,9 +485,15 @@ variable "vault_bastion_custom_script_s3_url" {
   type        = string
   default     = ""
   validation {
-    condition = can(regex("^s3://", var.vault_bastion_custom_script_s3_url)) || var.vault_bastion_custom_script_s3_url == ""
+    condition     = can(regex("^s3://", var.vault_bastion_custom_script_s3_url)) || var.vault_bastion_custom_script_s3_url == ""
     error_message = "Please use an s3 URL, starting with \"s3://\"."
   }
+}
+
+variable "unseal_vault" {
+  description = "Should we try to unseal the vault ? - Currently only works when using a public certificate."
+  type        = bool
+  default     = false
 }
 
 variable "vault_bastion_create_s3_bucket" {

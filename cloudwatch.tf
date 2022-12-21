@@ -491,24 +491,24 @@ resource "aws_lambda_function" "CloudWatchAutoAlarms" {
 
   environment {
     variables = {
-      ALARM_TAG = "Create_Auto_Alarms"
-      CREATE_DEFAULT_ALARMS = true
-      CLOUDWATCH_NAMESPACE = local.vault_cloudwatch_namespace
-      ALARM_MEMORY_HIGH_THRESHOLD = 80
+      ALARM_TAG                        = "Create_Auto_Alarms"
+      CREATE_DEFAULT_ALARMS            = true
+      CLOUDWATCH_NAMESPACE             = local.vault_cloudwatch_namespace
+      ALARM_MEMORY_HIGH_THRESHOLD      = 80
       ALARM_DISK_PERCENT_LOW_THRESHOLD = 20
-      CLOUDWATCH_APPEND_DIMENSIONS = "InstanceId, AutoScalingGroupName"
-      ALARM_LAMBDA_ERROR_THRESHOLD = 0
-      ALARM_LAMBDA_THROTTLE_THRESHOLD = 0
-      DEFAULT_ALARM_SNS_TOPIC_ARN = aws_sns_topic.alerts[0].arn
-      VAULT_PATH = var.vault_data_path
+      CLOUDWATCH_APPEND_DIMENSIONS     = "InstanceId, AutoScalingGroupName"
+      ALARM_LAMBDA_ERROR_THRESHOLD     = 0
+      ALARM_LAMBDA_THROTTLE_THRESHOLD  = 0
+      DEFAULT_ALARM_SNS_TOPIC_ARN      = aws_sns_topic.alerts[0].arn
+      VAULT_PATH                       = var.vault_data_path
     }
   }
 }
 
 resource "aws_cloudwatch_event_rule" "ec2_alarms" {
-  count       = var.vault_enable_cloudwatch ? 1 : 0
-  name        = "Initiate-CloudWatchAutoAlarmsEC2-${random_string.default.result}"
-  description = "Creates CloudWatch alarms on instance start via Lambda CloudWatchAutoAlarms and deletes them on instance termination."
+  count         = var.vault_enable_cloudwatch ? 1 : 0
+  name          = "Initiate-CloudWatchAutoAlarmsEC2-${random_string.default.result}"
+  description   = "Creates CloudWatch alarms on instance start via Lambda CloudWatchAutoAlarms and deletes them on instance termination."
   event_pattern = <<EOF
 {
   "source": [
@@ -544,9 +544,9 @@ resource "aws_lambda_permission" "ec2_alarms" {
 }
 
 resource "aws_cloudwatch_event_rule" "lambda" {
-  count       = var.vault_enable_cloudwatch ? 1 : 0
-  name        = "Initiate-CloudWatchAutoAlarmsLambda-${random_string.default.result}"
-  description = "Creates CloudWatch alarms on for lambda functions with the CloudWatchAutoAlarms activation tag"
+  count         = var.vault_enable_cloudwatch ? 1 : 0
+  name          = "Initiate-CloudWatchAutoAlarmsLambda-${random_string.default.result}"
+  description   = "Creates CloudWatch alarms on for lambda functions with the CloudWatchAutoAlarms activation tag"
   event_pattern = <<EOF
 {
   "source": [

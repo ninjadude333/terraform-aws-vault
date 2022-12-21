@@ -35,26 +35,8 @@ data "aws_ami" "default" {
   }
 }
 
-# Create a launch template.
-resource "aws_launch_template" "default" {
-  iam_instance_profile {
-    name = aws_iam_instance_profile.default.name
-  }
-  image_id = data.aws_ami.default.id
-  instance_requirements {
-    memory_mib {
-      min = local.minimum_memory
-    }
-    vcpu_count {
-      min = local.minimum_vcpus
-    }
-    cpu_manufacturers    = [var.vault_asg_cpu_manufacturer]
-    instance_generations = ["current"]
-  }
-  key_name               = local.vault_aws_key_name
-  name_prefix            = "${var.vault_name}-"
-  update_default_version = true
-  user_data = base64encode(templatefile("${path.module}/user_data_vault.sh.tpl",
+locals {
+  userdata = templatefile("user_data_vault.sh.tpl",
     {
       api_addr                       = local.api_addr
       audit_device                   = var.vault_audit_device
@@ -84,7 +66,29 @@ resource "aws_launch_template" "default" {
       vault_package                  = local.vault_package
       vault_license                  = try(var.vault_license, null)
       warmup                         = var.vault_asg_warmup_seconds
-    }))
+  })
+}
+
+# Create a launch template.
+resource "aws_launch_template" "default" {
+  iam_instance_profile {
+    name = aws_iam_instance_profile.default.name
+  }
+  image_id = data.aws_ami.default.id
+  instance_requirements {
+    memory_mib {
+      min = local.minimum_memory
+    }
+    vcpu_count {
+      min = local.minimum_vcpus
+    }
+    cpu_manufacturers    = [var.vault_asg_cpu_manufacturer]
+    instance_generations = ["current"]
+  }
+  key_name               = local.vault_aws_key_name
+  name_prefix            = "${var.vault_name}-"
+  update_default_version = true
+  user_data              = base64encode(local.userdata)
   vpc_security_group_ids = [aws_security_group.private.id, aws_security_group.public.id]
   dynamic "block_device_mappings" {
     for_each = var.vault_audit_device ? local.disks_with_audit : local.disks_without_audit
@@ -177,4 +181,15 @@ resource "aws_autoscaling_group" "default" {
   timeouts {
     delete = "15m"
   }
+}
+
+provider "vaultoperator" {
+  vault_addr = "https://${aws_route53_record.www.name}:${var.vault_api_port}"
+}
+
+# initialize Vault
+resource "vaultoperator_init" "example" {
+  count = var.unseal_vault ? 1 : 0
+  secret_shares    = 5
+  secret_threshold = 3
 }

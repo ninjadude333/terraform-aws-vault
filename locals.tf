@@ -9,10 +9,10 @@ locals {
   private_tags     = merge({ Name = "private-${var.vault_name}-${random_string.default.result}" }, var.vault_tags)
   public_tags      = merge({ Name = "public-${var.vault_name}-${random_string.default.result}" }, var.vault_tags)
   replication_tags = merge({ Name = "replication-${var.vault_name}-${random_string.default.result}" }, var.vault_tags)
-  scripts_tags     = merge({ Name = "scripts-${var.vault_name}-${random_string.default.result}" },  var.vault_tags)
-  vpc_tags         = merge({ Name = "vpc-${var.vault_name}-${random_string.default.result}" },  var.vault_tags)
+  scripts_tags     = merge({ Name = "scripts-${var.vault_name}-${random_string.default.result}" }, var.vault_tags)
+  vpc_tags         = merge({ Name = "vpc-${var.vault_name}-${random_string.default.result}" }, var.vault_tags)
   tags             = merge({ Name = "${var.vault_name}-${random_string.default.result}" }, var.vault_tags)
-  
+
   # Compose the name of the instances.
   instance_name = "vault-${var.vault_name}-${random_string.default.result}"
 
@@ -128,7 +128,7 @@ locals {
     default             = "amzn2-ami-hvm-*-x86_64-ebs"
     amazon-web-services = "amzn2-ami-hvm-*-arm64-gp2"
   }
-  ami_pattern = try(local._ami_pattern[var.vault_asg_cpu_manufacturer], local._ami_pattern["default"])
+  ami_pattern = try(local._ami_pattern["default"], local._ami_pattern[var.vault_asg_cpu_manufacturer])
 
   # A map of disks, if `var.vault_audit_device` is disabled, this list is used.
   disks_without_audit = [
@@ -165,9 +165,9 @@ locals {
     }
   ]
 
-# The AWS Cloudwatch namespace where all metrics of the Vault deployment are collected. 
-# Do not use dashes "-" in the namespace or automatic alarm functionality will break.
-vault_cloudwatch_namespace = "vault_${var.vault_name}_${random_string.default.result}_cwagent"
+  # The AWS Cloudwatch namespace where all metrics of the Vault deployment are collected. 
+  # Do not use dashes "-" in the namespace or automatic alarm functionality will break.
+  vault_cloudwatch_namespace = "vault_${var.vault_name}_${random_string.default.result}_cwagent"
 
 }
 

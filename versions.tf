@@ -13,5 +13,9 @@ terraform {
       source  = "hashicorp/random"
       version = ">= 3.0"
     }
+    vaultoperator = {
+      version = "0.1.8"
+      source  = "rickardgranberg/vaultoperator"
+    }
   }
 }

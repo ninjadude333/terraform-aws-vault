@@ -47,3 +47,19 @@ output "aws_s3_bucket_bastion_arn" {
   description = "The ARN of the AWS S3 bucket to use for backups."
   value       = try(aws_s3_bucket.bastion.arn, "The varialbe vault_bastion_create_s3_bucket is false, no S3 bucket created.")
 }
+
+output "route53_dns_name" {
+  description = "The DNS name of the R53 A record."
+  value       = aws_route53_record.www.name
+}
+
+output "vault_url" {
+  description = "The Url to access the vault cluster."
+  value       = "https://${var.r53_record_name}:${var.vault_api_port}"
+}
+
+output "vault_root_token" {
+  description = "vault root token."
+  value       = var.unseal_vault ? vaultoperator_init.example[*].root_token : null
+  sensitive = true
+}

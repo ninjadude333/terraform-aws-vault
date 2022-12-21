@@ -1,15 +1,11 @@
 #!/bin/bash
-
-# Always update packages installed.
 yum update -y
 
-# Make a directory for Raft, certificates and init information.
 mkdir -p "${vault_data_path}"
 mkfs.ext4 /dev/sda1
 mount /dev/sda1 "${vault_data_path}"
 chmod 750 "${vault_data_path}"
 
-# Make a directory for audit logs.
 if [ "${audit_device}" = "true" ] ; then
   mkdir -p "${audit_device_path}"
   mkfs.ext4 /dev/sdb
@@ -17,58 +13,44 @@ if [ "${audit_device}" = "true" ] ; then
   chmod 750 "${audit_device_path}"
 fi
 
-# 169.254.169.254 is an Amazon service to provide information about itself.
 my_hostname="$(curl http://169.254.169.254/latest/meta-data/hostname)"
 my_ipaddress="$(curl http://169.254.169.254/latest/meta-data/local-ipv4)"
 my_instance_id="$(curl http://169.254.169.254/latest/meta-data/instance-id)"
 my_region="$(curl http://169.254.169.254/latest/dynamic/instance-identity/document | grep region | cut -d\" -f4)"
 
-# Run a custom, user-provided script.
 if [ "${vault_custom_script_s3_url}" != "" ] ; then
   aws s3 cp "${vault_custom_script_s3_url}" /custom.sh
   sh /custom.sh
 fi
 
-# Install, configure and initialize the AWS Cloudwatch agent
 if [ "${cloudwatch_monitoring}" = "true" ] ; then
   aws s3 cp "s3://vault-scripts-${random_string}/cloudwatch.sh" /cloudwatch.sh
   sh /cloudwatch.sh -n "${vault_name}" -N "$${my_hostname}" -i "$${my_instance_id}" -r "${random_string}" -p "${vault_data_path}" -s "${vault_cloudwatch_namespace}"
 fi
 
-# Add the HashiCorp RPM repository.
 yum install -y yum-utils
 yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
 
-# Install a specific version of Vault.
 yum install -y "${vault_package}"
-
-# Change ownership for the `vault_data_path``.
 chown vault:vault "${vault_data_path}"
 
-# Create and configure the Vault data folder when it is different from the default path created by the rpm.
 if [ "${vault_data_path}" != "/opt/vault" ] ; then
   mkdir ${vault_data_path}/data
   chown vault:vault ${vault_data_path}/data
   chmod 755 ${vault_data_path}/data
 fi
 
-# Optionally change ownership for `audit_device_path`.
 if [ -d "${audit_device_path}" ] ; then
   chown vault:vault "${audit_device_path}"
 fi
 
-# Allow auto-completion for the ec2-user.
 runuser -l ec2-user -c "vault -autocomplete-install"
-
-# Allow IPC lock capability to Vault.
 setcap cap_ipc_lock=+ep "$(readlink -f "$(which vault)")"
 
-# Disable core dumps.
 echo '* hard core 0' >> /etc/security/limits.d/vault.conf
 echo '* soft core 0' >> /etc/security/limits.d/vault.conf
 ulimit -c 0
 
-# Place CA key and certificate.
 test -d "${vault_data_path}/tls" || mkdir "${vault_data_path}/tls"
 chmod 0755 "${vault_data_path}/tls"
 chown vault:vault "${vault_data_path}/tls"
@@ -79,7 +61,6 @@ chown root:root "${vault_data_path}/tls/vault_ca.pem"
 chmod 0644 "${vault_data_path}/tls/vault_ca.crt"
 chown root:root "${vault_data_path}/tls/vault_ca.crt"
 
-# Place request.cfg.
 cat << EOF > "${vault_data_path}/tls/request.cfg"
 [req]
 distinguished_name = dn
@@ -102,29 +83,18 @@ IP.1 = $${my_ipaddress}
 DNS.1 = $${my_hostname}
 EOF
 
-# Create a private key and certificate signing request for this instance.
 openssl req -config "${vault_data_path}/tls/request.cfg" -new -newkey rsa:2048 -nodes -keyout "${vault_data_path}/tls/vault.pem" -extensions ext -out "${vault_data_path}/tls/vault.csr"
 chmod 0640 "${vault_data_path}/tls/vault.pem"
 chown root:vault "${vault_data_path}/tls/vault.pem"
 
-# Sign the certificate signing request using the distributed CA.
 openssl x509 -extfile "${vault_data_path}/tls/request.cfg" -extensions ext -req -in "${vault_data_path}/tls/vault.csr" -CA "${vault_data_path}/tls/vault_ca.crt" -CAkey "${vault_data_path}/tls/vault_ca.pem" -CAcreateserial -out "${vault_data_path}/tls/vault.crt" -days 7300
 chmod 0644 "${vault_data_path}/tls/vault.crt"
 chown root:root "${vault_data_path}/tls/vault.crt"
 
-# Concatenate CA and server certificate.
 cat "${vault_data_path}/tls/vault_ca.crt" >> "${vault_data_path}/tls/vault.crt"
-
-# Store Amazon CA, required to bootstrap through loadbalancer.
 curl https://www.amazontrust.com/repository/AmazonRootCA1.pem --output "${vault_data_path}/tls/amazon_ca.crt"
-
-# Append the Amazon CA to Vault's CA.
 cat "${vault_data_path}/tls/amazon_ca.crt" >> "${vault_data_path}/tls/vault_ca.crt"
 
-# A single "$": passed from Terraform.
-# A double "$$": determined in the runtime of this script.
-
-# Place the Vault configuration.
 cat << EOF > /etc/vault.d/vault.hcl
 cluster_name      = "${vault_name}"
 disable_mlock     = true
@@ -174,31 +144,23 @@ telemetry {
 EOF
 fi
 
-# Expose the license.
 if [ -n "${vault_license}" ] ; then
   echo "VAULT_LICENSE=${vault_license}" >> /etc/vault.d/vault.env
 fi
 
-# Start and enable Vault.
 systemctl --now enable vault
 
-# Setup logrotate if the audit_device is enabled.
 if [[ "${audit_device}" = "true" || "${cloudwatch_monitoring}" = "true" ]] ; then
   aws s3 cp "s3://vault-scripts-${random_string}/setup_logrotate.sh" /setup_logrotate.sh
   sh /setup_logrotate.sh -a "${audit_device_path}" -s "$[${audit_device_size}*4]"
 fi
 
-# Allow users to use `vault`.
 echo "export VAULT_ADDR=https://$${my_ipaddress}:8200" >> /etc/profile.d/vault.sh
 echo "export VAULT_CACERT=${vault_data_path}/tls/vault_ca.crt" >> /etc/profile.d/vault.sh
-
-# Set the history to ignore all commands that start with vault.
 echo "export HISTIGNORE=\"&:vault*\"" >> /etc/profile.d/vault.sh
 
-# Allow ec2-user access to Vault files.
 usermod -G vault ec2-user
 
-# Place an AWS EC2 health check script.
 cat << EOF >> /usr/local/bin/aws_health.sh
 #!/bin/sh
 
@@ -218,13 +180,8 @@ else
 fi
 EOF
 
-# Make the AWS EC2 health check script executable.
 chmod 754 /usr/local/bin/aws_health.sh
-
-# Run the AWS EC2 health check every minute, 5 minutes after provisioning.
 sleep "${warmup}" && crontab -l | { cat; echo "* * * * * /usr/local/bin/aws_health.sh"; } | crontab -
-
-# Place a script to discover if this instance is terminated.
 cat << EOF >> /usr/local/bin/aws_deregister.sh
 #!/bin/sh
 
@@ -239,7 +196,6 @@ if (curl --silent http://169.254.169.254/latest/meta-data/autoscaling/target-lif
 fi
 EOF
 
-# Make the AWS Target Group script executable.
 chmod 754 /usr/local/bin/aws_deregister.sh
 
 crontab -l | { cat; echo "* * * * * /usr/local/bin/aws_deregister.sh"; } | crontab -
